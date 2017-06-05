@@ -72,7 +72,7 @@ GLuint loadImage(char* img)
 
 void loadImages()
 {
-    pitchTex = loadImage("pitch.png");
+    pitchTex = loadImage("../images/pitch.png");
     printf("Pitch tex id: %d\n", pitchTex);
 }
 

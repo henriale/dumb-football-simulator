@@ -71,3 +71,5 @@ Thumbs.db
 *.dll
 *.exe
 
+#IDE
+cmake-build-debug

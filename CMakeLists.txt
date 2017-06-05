@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(robotfootball)
+project(dumb-football-simulator)
 
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 
-set( SOURCES
+set(SOURCES
     main.c
     opengl.c
     include/SOIL/SOIL.h
@@ -16,11 +16,11 @@ set( SOURCES
 )
 
 include_directories("include/chipmunk" "include/SOIL")
-include_directories( ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
+include_directories(${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     message(STATUS "Compilando no Mac OSX...")
-    add_definitions( -Wno-deprecated-declarations )
+    add_definitions(-Wno-deprecated-declarations)
     link_directories(${CMAKE_SOURCE_DIR}/lib-Mac)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     message(STATUS "Compilando no Linux...")

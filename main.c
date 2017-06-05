@@ -71,10 +71,10 @@ void initCM()
     //   - ponteiro para a função de movimentação (chamada a cada passo, pode ser NULL)
     //   - coeficiente de fricção
     //   - coeficiente de elasticidade
-    ballBody = newCircle(cpv(512,350), 8, 1, "small_football.png", moveBola, 0.2, 1);
+    ballBody = newCircle(cpv(512,350), 8, 1, "../images/ball.png", moveBola, 0.2, 1);
 
     // ... e um robô de exemplo
-    robotBody = newCircle(cpv(50,350), 20, 5, "ship1.png", moveRobo, 0.2, 0.5);
+    robotBody = newCircle(cpv(50,350), 20, 5, "../images/player1.png", moveRobo, 0.2, 0.5);
 }
 
 // Exemplo de função de movimentação: move o robô em direção à bola
