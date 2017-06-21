@@ -19,7 +19,7 @@ extern cpFloat timeStep;
 // Score do jogo - definido em main.c
 extern int score1;
 extern int score2;
-extern int gameOver; // 1 se o jogo tiver acabado
+extern int gameIsOver; // 1 se o jogo tiver acabado
 
 // Tex id para o campo
 GLuint pitchTex;
@@ -73,6 +73,13 @@ cpSpaceDebugColor ColorForShape(cpShape *shape, cpDataPointer data)
   cpSpaceDebugColor cor = {1, 0, 0, 1};
   return cor;
 }
+
+/**
+ * Inicialização da janela gráfica
+ *
+ * @param argc
+ * @param argv
+ */
 void init(int argc, char **argv)
 {
   glutInit(&argc, argv);
@@ -140,7 +147,7 @@ void eachBodyFunc(cpBody *body, void *data)
   // Assumindo que todos os corpos são circulares...
   drawBody(pos, angle, ud);
   // Se há uma função de movimento associada ao corpo, chama ela
-  if (ud->func != NULL && !gameOver)
+  if (ud->func != NULL && !gameIsOver)
     (*ud->func)(body, ud);
 }
 // Desenha a imagem do campo
@@ -175,7 +182,7 @@ void drawScore()
   glutBitmapString(GLUT_BITMAP_HELVETICA_18, strscore2);
 
   // Se a simulação terminou, exibe a mensagem do vencedor
-  if (gameOver)
+  if (gameIsOver)
     {
       char strgameover[100];
       glRasterPos2i(LARGURA_JAN / 2 - 200, ALTURA_JAN / 2);
@@ -233,7 +240,7 @@ void keyboard(unsigned char key, int x, int y)
       break;
       case 'f':
         // F gera um game over (teste)
-        gameOver = 1;
+        gameIsOver = 1;
       break;
       case 'r':
         // R faz restart na simulação (chama função restartCM)
