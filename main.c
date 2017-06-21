@@ -1,6 +1,7 @@
 #include <chipmunk.h>
 #include "opengl.h"
-
+#include "shapes.h"
+#include "players/body.h"
 /**
  * Funções para movimentação de objetos
  * @todo: extract
@@ -11,8 +12,6 @@ void moveRobo(cpBody *body, void *data);
 void initCM();
 void freeCM();
 void restartCM();
-cpShape *newLine(cpVect inicio, cpVect fim, cpFloat fric, cpFloat elast);
-cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
 
 /**
  * Score do jogo
@@ -31,21 +30,9 @@ int gameIsOver = 0;
 cpVect gravity;
 
 /**
- * O ambiente
- */
-cpSpace *space;
-
-/**
  * Paredes "invisíveis" do ambiente
  */
 cpShape *leftWall, *rightWall, *topWall, *bottomWall;
-
-/**
- * bola e jogadores
- * @todo: extract
- */
-cpBody *ballBody;
-cpBody *robotBody;
 
 /**
  * Clock.
@@ -75,44 +62,8 @@ void initCM()
   bottomWall = newLine(cpv(0, 0), cpv(LARGURA_JAN, 0), 0, 1.0);
   topWall = newLine(cpv(0, ALTURA_JAN), cpv(LARGURA_JAN, ALTURA_JAN), 0, 1.0);
 
-  // todo: extract
-  ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", NULL, 0.2, 1);
-  robotBody = newCircle(cpv(50, 350), 20, 5, "../images/player1.png", moveRobo, 0.2, 0.5);
-}
-
-/**
- * Exemplo de função de movimentação: move o robô em direção à bola
- *
- * @param body
- * @param data
- *
- * @todo: extract
- */
-void moveRobo(cpBody *body, void *data)
-{
-  // Veja como obter e limitar a velocidade do robô...
-  cpVect vel = cpBodyGetVelocity(body);
-  // printf("vel: %f %f", vel.x,vel.y);
-
-  // Limita o vetor em 50 unidades
-  vel = cpvclamp(vel, 50);
-  // E seta novamente a velocidade do corpo
-  cpBodySetVelocity(body, vel);
-
-  // Obtém a posição do robô e da bola...
-  cpVect robotPos = cpBodyGetPosition(body);
-  cpVect ballPos = cpBodyGetPosition(ballBody);
-
-  // Calcula um vetor do robô à bola (DELTA = B - R)
-  cpVect pos = robotPos;
-  pos.x = -robotPos.x;
-  pos.y = -robotPos.y;
-  cpVect delta = cpvadd(ballPos, pos);
-
-  // Limita o impulso em 20 unidades
-  delta = cpvmult(cpvnormalize(delta), 20);
-  // Finalmente, aplica impulso no robô
-  cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
+  loadBall();
+  loadPlayers();
 }
 
 /**
@@ -125,9 +76,9 @@ void freeCM()
   UserData *ud = cpBodyGetUserData(ballBody);
   cpShapeFree(ud->shape);
   cpBodyFree(ballBody);
-  ud = cpBodyGetUserData(robotBody);
+  ud = cpBodyGetUserData(playerBody);
   cpShapeFree(ud->shape);
-  cpBodyFree(robotBody);
+  cpBodyFree(playerBody);
   cpShapeFree(leftWall);
   cpShapeFree(rightWall);
   cpShapeFree(bottomWall);
@@ -165,70 +116,4 @@ int main(int argc, char **argv)
   glutMainLoop();
 
   return 0;
-}
-
-/**
- * Cria e adiciona uma nova linha estática (segmento) ao ambiente
- *
- * @param inicio
- * @param fim
- * @param fric
- * @param elast
- * @return
- */
-cpShape *newLine(cpVect inicio, cpVect fim, cpFloat fric, cpFloat elast)
-{
-  cpShape *aux = cpSegmentShapeNew(cpSpaceGetStaticBody(space), inicio, fim, 0);
-  cpShapeSetFriction(aux, fric);
-  cpShapeSetElasticity(aux, elast);
-  cpSpaceAddShape(space, aux);
-
-  return aux;
-}
-
-/**
- * Cria e adiciona um novo corpo dinâmico, com formato circular
- *
- * @param pos
- * @param radius
- * @param mass
- * @param img
- * @param motion
- * @param fric
- * @param elast
- *
- * @return cpBody
- */
-cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotionFunc motion, cpFloat fric, cpFloat elast)
-{
-  // Primeiro criamos um cpBody para armazenar as propriedades fisicas do objeto
-  // Estas incluem: massa, posicao, velocidade, angulo, etc do objeto
-  // A seguir, adicionamos formas de colisao ao cpBody para informar o seu formato e tamanho
-
-  // O momento de inercia e' como a massa, mas para rotacao
-  // Use as funcoes cpMomentFor*() para calcular a aproximacao dele
-  cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
-
-  // As funcoes cpSpaceAdd*() retornam o que voce esta' adicionando
-  // E' conveniente criar e adicionar um objeto na mesma linha
-  cpBody *newBody = cpSpaceAddBody(space, cpBodyNew(mass, moment));
-
-  // Por fim, ajustamos a posicao inicial do objeto
-  cpBodySetPosition(newBody, pos);
-
-  // Agora criamos a forma de colisao do objeto
-  // Voce pode criar multiplas formas de colisao, que apontam ao mesmo objeto (mas nao e' necessario para o trabalho)
-  // Todas serao conectadas a ele, e se moverao juntamente com ele
-  cpShape *newShape = cpSpaceAddShape(space, cpCircleShapeNew(newBody, radius, cpvzero));
-  cpShapeSetFriction(newShape, fric);
-  cpShapeSetElasticity(newShape, elast);
-  UserData *newUserData = malloc(sizeof(UserData));
-  newUserData->tex = loadImage(img);
-  newUserData->radius = radius;
-  newUserData->shape = newShape;
-  newUserData->func = motion;
-  cpBodySetUserData(newBody, newUserData);
-  printf("newCircle: loaded img %s\n", img);
-
-  return newBody;
 }

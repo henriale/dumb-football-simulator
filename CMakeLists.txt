@@ -13,7 +13,7 @@ set(SOURCES
         SOIL/image_DXT.c
         SOIL/image_helper.c
         SOIL/stb_image_aug.c
-        )
+        players/motion.c players/motion.h players/body.c players/body.h shapes.c shapes.h)
 
 include_directories("include/chipmunk" "include/SOIL")
 include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})

@@ -26,7 +26,7 @@ GLuint pitchTex;
 // Gravidade: usada aqui apenas para testar o liga/desliga
 extern cpVect gravity;
 // Está aqui apenas para o teste de movimentação via teclado
-extern cpBody *robotBody;
+extern cpBody *playerBody;
 // Opções para o debugdraw - não está sendo usado
 cpSpaceDebugDrawOptions drawOptions;
 // Funções presentes em main.c
@@ -276,8 +276,8 @@ void keyboard(unsigned char key, int x, int y)
     }
   if (dx != 0 || dy != 0)
     {
-      pos = cpBodyGetPosition(robotBody);
-      cpBodyApplyImpulseAtWorldPoint(robotBody, cpv(dx, dy), cpv(pos.x, pos.y));
+      pos = cpBodyGetPosition(playerBody);
+      cpBodyApplyImpulseAtWorldPoint(playerBody, cpv(dx, dy), cpv(pos.x, pos.y));
       glutPostRedisplay();
     }
 }
