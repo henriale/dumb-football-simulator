@@ -6,6 +6,8 @@
  * @todo: extract
  */
 void moveRobo(cpBody *body, void *data);
+void moveDefenderToTheBall(cpBody *body, void *data);
+void waitForBallToApproach(cpBody *body, void *data);
 
 // Prototipos
 void initCM();
@@ -13,7 +15,8 @@ void freeCM();
 void restartCM();
 cpShape *newLine(cpVect inicio, cpVect fim, cpFloat fric, cpFloat elast);
 cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
-
+void moveDefenderToOrigin(cpBody *body, void *data)
+;
 /**
  * Score do jogo
  */
@@ -47,6 +50,12 @@ cpShape *leftWall, *rightWall, *topWall, *bottomWall;
 cpBody *ballBody;
 cpBody *robotBody;
 
+typedef struct {
+  int from, to;
+} xLimits;
+
+cpBody *playersBody[];
+
 /**
  * Clock.
  * Cada passo de simulação é 1/60 seg.
@@ -77,7 +86,12 @@ void initCM()
 
   // todo: extract
   ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", NULL, 0.2, 1);
+
+  // team red
   robotBody = newCircle(cpv(50, 350), 20, 5, "../images/player1.png", moveRobo, 0.2, 0.5);
+
+  // team blue
+  playersBody[0] = newCircle(cpv(900, 350), 20, 5, "../images/player2.png", waitForBallToApproach, 0.2, 0.5);
 }
 
 /**
@@ -231,4 +245,73 @@ cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotio
   printf("newCircle: loaded img %s\n", img);
 
   return newBody;
+}
+void moveDefenderToTheBall(cpBody *body, void *data)
+{
+  cpVect vel = cpBodyGetVelocity(body);
+  vel = cpvclamp(vel, 35);
+  cpBodySetVelocity(body, vel);
+
+  cpVect robotPos = cpBodyGetPosition(body);
+  cpVect ballPos = cpBodyGetPosition(ballBody);
+
+  UserData *userData = data;
+
+  if (robotPos.x < 700) {
+      printf("changing defender motion to its position\n");
+      userData->func = moveDefenderToOrigin;
+      return;
+  }
+
+  cpVect pos = robotPos;
+  pos.x = -robotPos.x;
+  pos.y = -robotPos.y;
+  cpVect delta = cpvadd(ballPos, pos);
+  delta = cpvmult(cpvnormalize(delta), 20);
+
+  cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
+}
+
+void moveDefenderToOrigin(cpBody *body, void *data)
+{
+  cpVect vel = cpBodyGetVelocity(body);
+  vel = cpvclamp(vel, 90);
+  cpBodySetVelocity(body, vel);
+
+  cpVect robotPos = cpBodyGetPosition(body);
+  cpVect ballPos = cpBodyGetPosition(ballBody);
+
+  UserData *userData = data;
+
+  // ball inside defender zone
+  if (ballPos.x < 700 && robotPos.x > 700) {
+      printf("changing defender motion to the ball\n");
+      userData->func = moveDefenderToTheBall;
+      return;
+  }
+  cpVect pos = robotPos;
+  pos.x = -robotPos.x;
+  pos.y = -robotPos.y;
+  cpVect delta = cpvadd(ballPos, pos);
+  delta = cpvmult(cpvnormalize(delta), 20);
+
+  cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
+}
+void waitForBallToApproach(cpBody *body, void *data)
+{
+  printf("player is waiting for the ball\n");
+
+  cpVect vel = cpBodyGetVelocity(body);
+  vel = cpvclamp(vel, 0);
+  cpBodySetVelocity(body, vel);
+
+  cpVect robotPos = cpBodyGetPosition(body);
+  cpVect ballPos = cpBodyGetPosition(ballBody);
+
+  UserData *userData = data;
+
+  // ball inside defender zone
+  if (ballPos.x > 700) {
+      userData->func = moveDefenderToTheBall;
+  }
 }
