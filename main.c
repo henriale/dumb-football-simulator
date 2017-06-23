@@ -11,6 +11,7 @@ void moveDefenderToTheBall(cpBody *body, void *data);
 void moveDefenderToOrigin(cpBody *body, void *data);
 void moveGoalkepper(cpBody *body, void *data);
 void waitForBallToApproach(cpBody *body, void *data);
+void ballMotion(cpBody *ballBody, void *data);
 
 bool ballIsInDefendingZone(cpBody *playerBody, cpBody *ballBody);
 bool ballIsInMidfield(cpBody *playerBody, cpBody *ballBody);
@@ -31,8 +32,8 @@ const static int LEFT_ZONE = 1;
 const static int MID_ZONE = 2;
 const static int RIGHT_ZONE = 3;
 
-const static int SLOW_PACE = 15;
-const static int NORMAL_PACE = 40;
+const static int SLOW_PACE = 25;
+const static int NORMAL_PACE = 55;
 const static int FAST_PACE = 85;
 
 const static double ELAST_DEFAULT = 1.3;
@@ -77,7 +78,7 @@ cpBody *playersBody[12];
  * Cada passo de simulação é 1/60 seg.
  */
 cpFloat timeStep = 1.0 / 60.0;
-
+bool ballIsInsideGoal = false;
 /**
  * Inicializa campo e seus componentes
  */
@@ -101,21 +102,21 @@ void initCM()
   topWall = newLine(cpv(0, ALTURA_JAN), cpv(LARGURA_JAN, ALTURA_JAN), 0, 1.0);
 
   // todo: extract
-  ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", NULL, 0.2, 1);
+  ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", ballMotion, 0.2, 1);
 
-  playersBody[0] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.2, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT);
-  playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[4] = newPlayer(TEAM_A, cpv(350, 250), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT);
-  playersBody[5] = newPlayer(TEAM_A, cpv(350, 450), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT);
+  playersBody[0] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.2, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[4] = newPlayer(TEAM_A, cpv(350, 250), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[5] = newPlayer(TEAM_A, cpv(350, 450), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
 
-  playersBody[6] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.8, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT);
-  playersBody[7] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[8] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[9] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT);
-  playersBody[10] = newPlayer(TEAM_B, cpv(600, 250), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT);
-  playersBody[11] = newPlayer(TEAM_B, cpv(600, 450), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT);
+  playersBody[6] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.8, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[7] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[8] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[9] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[10] = newPlayer(TEAM_B, cpv(600+rand()%100-50, 250+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[11] = newPlayer(TEAM_B, cpv(600+rand()%100-50, 450+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
 }
 
 /**
@@ -130,9 +131,9 @@ void freeCM()
   cpBodyFree(ballBody);
 
   for (int i = 0; i < 12; ++i) {
-      //TODO: ud = cpBodyGetUserData(playersBody[i]);
-      //TODO: cpShapeFree(ud->shape);
-      //TODO: cpBodyFree(playersBody[i]);
+      ud = cpBodyGetUserData(playersBody[i]);
+      cpShapeFree(ud->shape);
+      cpBodyFree(playersBody[i]);
   }
 
   cpShapeFree(leftWall);
@@ -145,7 +146,7 @@ void freeCM()
 void restartCM()
 {
   // Escreva o código para reposicionar os jogadores, ressetar o score, etc.
-
+  score1 = score2 = 0;
   // Não esqueça de ressetar a variável gameIsOver!
   gameIsOver = 0;
 }
@@ -307,7 +308,7 @@ cpBody * newPlayer(playerTeam team, cpVect pos, cpFloat radius, cpFloat mass, bo
 void moveAttackerToTheBall(cpBody *playerBody, void *data)
 {
   cpVect vel = cpBodyGetVelocity(playerBody);
-  vel = cpvclamp(vel, NORMAL_PACE);
+  vel = cpvclamp(vel, FAST_PACE + rand()%30);
   cpBodySetVelocity(playerBody, vel);
 
   cpVect robotPos = cpBodyGetPosition(playerBody);
@@ -338,13 +339,12 @@ void moveAttackerToTheBall(cpBody *playerBody, void *data)
 void moveDefenderToTheBall(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, FAST_PACE);
+  vel = cpvclamp(vel, FAST_PACE + rand()%30);
   cpBodySetVelocity(body, vel);
 
   UserData *userData = data;
 
   if (! ballIsInDefendingZone(body, ballBody)) {
-      printf("changing defender motion to its position\n");
       userData->motionFunction = moveDefenderToOrigin;
       return;
   }
@@ -369,7 +369,7 @@ void moveDefenderToTheBall(cpBody *body, void *data)
 void moveGoalkepper(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, FAST_PACE);
+  vel = cpvclamp(vel, SLOW_PACE);
   cpBodySetVelocity(body, vel);
 
   UserData *userData = data;
@@ -384,7 +384,7 @@ void moveGoalkepper(cpBody *body, void *data)
 
   cpVect direction = ballPosition;
   direction.x = userData->defaultPosition.x;
-  direction.y = ballPosition.y < 400.0 && ballPosition.y > 300.0 ? ballPosition.y : userData->defaultPosition.y;
+  direction.y = playerPosition.y < 400.0 && playerPosition.y > 300.0 ? ballPosition.y : userData->defaultPosition.y;
 
   cpVect delta = cpvadd(direction, invPlayerPosition);
   delta = cpvmult(cpvnormalize(delta), 20);
@@ -400,12 +400,11 @@ void moveGoalkepper(cpBody *body, void *data)
 void moveDefenderToOrigin(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, SLOW_PACE);
+  vel = cpvclamp(vel, NORMAL_PACE + rand()%60-20);
   cpBodySetVelocity(body, vel);
   UserData *userData = data;
 
   if (ballIsInDefendingZone(body, ballBody)) {
-      printf("changing defender motion to the ball\n");
       userData->motionFunction = moveDefenderToTheBall;
       return;
   }
@@ -428,12 +427,11 @@ void moveDefenderToOrigin(cpBody *body, void *data)
 void moveAttackerToOrigin(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, SLOW_PACE);
+  vel = cpvclamp(vel, SLOW_PACE + rand()%30);
   cpBodySetVelocity(body, vel);
   UserData *userData = data;
 
-  if (! ballIsInMidfield(body, ballBody)) {
-      printf("changing attacker motion to the ball\n");
+  if (ballIsInMidfield(body, ballBody)) {
       userData->motionFunction = moveAttackerToTheBall;
       return;
   }
@@ -461,9 +459,34 @@ void waitForBallToApproach(cpBody *body, void *data)
   UserData *userData = data;
 
   if (ballIsInDefendingZone(body, ballBody)) {
-      printf("changing defender motion to the ball\n");
       userData->motionFunction = moveDefenderToTheBall;
   }
+}
+
+/**
+ *
+ * @param body
+ * @param data
+ */
+void ballMotion(cpBody *body, void *data)
+{
+  cpVect ballPosition = cpBodyGetPosition(body);
+
+  if (ballPosition.x < 100 && ballPosition.x > 20 && ballPosition.y > 350 && ballPosition.y < 450) {
+      if (ballIsInsideGoal) {
+          score1++;
+      }
+  } else {
+      ballIsInsideGoal = false;
+  }
+
+  if (ballPosition.x < LARGURA_JAN-20 && ballPosition.x > LARGURA_JAN-100 && ballPosition.y > 350 && ballPosition.y < 450) {
+      if (ballIsInsideGoal) {
+          score2++;
+        }
+    } else {
+      ballIsInsideGoal = false;
+    }
 }
 
 /**
