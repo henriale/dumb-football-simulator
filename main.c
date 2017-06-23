@@ -8,6 +8,7 @@
 void moveRobo(cpBody *body, void *data);
 void moveDefenderToTheBall(cpBody *body, void *data);
 void moveDefenderToOrigin(cpBody *body, void *data);
+void moveGoalkepper(cpBody *body, void *data);
 void waitForBallToApproach(cpBody *body, void *data);
 
 bool ballIsInDefendingZone(cpBody *playerBody, cpBody *ballBody);
@@ -27,6 +28,10 @@ cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotio
 const static int LEFT_ZONE = 1;
 const static int MID_ZONE = 2;
 const static int RIGHT_ZONE = 3;
+
+const static int SLOW_PACE = 15;
+const static int NORMAL_PACE = 40;
+const static int FAST_PACE = 85;
 
 typedef unsigned int fieldZone;
 fieldZone bodyZone(cpBody *body);
@@ -97,6 +102,7 @@ void initCM()
   // todo: extract
   ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", NULL, 0.2, 1);
 
+  playersBody[0] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.2, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, 0.9);
   playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
   playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
   playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
@@ -272,11 +278,8 @@ cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotio
 void moveDefenderToTheBall(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, 35);
+  vel = cpvclamp(vel, FAST_PACE);
   cpBodySetVelocity(body, vel);
-
-  cpVect robotPos = cpBodyGetPosition(body);
-  cpVect ballPos = cpBodyGetPosition(ballBody);
 
   UserData *userData = data;
 
@@ -285,6 +288,9 @@ void moveDefenderToTheBall(cpBody *body, void *data)
       userData->motionFunction = moveDefenderToOrigin;
       return;
   }
+
+  cpVect robotPos = cpBodyGetPosition(body);
+  cpVect ballPos = cpBodyGetPosition(ballBody);
 
   cpVect pos = robotPos;
   pos.x = -robotPos.x;
@@ -300,10 +306,40 @@ void moveDefenderToTheBall(cpBody *body, void *data)
  * @param body
  * @param data
  */
+void moveGoalkepper(cpBody *body, void *data)
+{
+  cpVect vel = cpBodyGetVelocity(body);
+  vel = cpvclamp(vel, FAST_PACE);
+  cpBodySetVelocity(body, vel);
+
+  UserData *userData = data;
+
+  cpVect playerPosition = cpBodyGetPosition(body);
+  cpVect ballPosition = cpBodyGetPosition(ballBody);
+
+  cpVect invPlayerPosition = playerPosition;
+  invPlayerPosition.x = -playerPosition.x;
+  invPlayerPosition.y = -playerPosition.y;
+
+
+  cpVect direction = ballPosition;
+  direction.x = userData->defaultPosition.x;
+  direction.y = ballPosition.y < 400.0 && ballPosition.y > 300.0 ? ballPosition.y : userData->defaultPosition.y;
+
+  cpVect delta = cpvadd(direction, invPlayerPosition);
+  delta = cpvmult(cpvnormalize(delta), 20);
+
+  cpBodyApplyImpulseAtWorldPoint(body, delta, playerPosition);
+}
+/**
+ *
+ * @param body
+ * @param data
+ */
 void moveDefenderToOrigin(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, 90);
+  vel = cpvclamp(vel, SLOW_PACE);
   cpBodySetVelocity(body, vel);
   UserData *userData = data;
 
