@@ -19,6 +19,9 @@ bool playerIsInAttackingZone(cpBody *playerBody);
 bool playerIsInMidfield(cpBody *playerBody);
 bool playerIsInDefendingZone(cpBody *playerBody);
 
+int distanceToTheBall(cpBody *body);
+int distanceToOrigin(cpBody *pBody);
+
 // Prototipos
 void initCM();
 void freeCM();
@@ -27,16 +30,16 @@ void restartCM();
 cpBody *newPlayer(playerTeam team, cpVect pos, cpFloat radius, cpFloat mass, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
 cpShape *newLine(cpVect inicio, cpVect fim, cpFloat fric, cpFloat elast);
 cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
-
+int distanceToOrigin(cpBody *pBody);
 const static int LEFT_ZONE = 1;
 const static int MID_ZONE = 2;
 const static int RIGHT_ZONE = 3;
 
-const static int SLOW_PACE = 25;
-const static int NORMAL_PACE = 55;
-const static int FAST_PACE = 85;
+const static int SLOW_PACE = 40;
+const static int NORMAL_PACE = 75;
+const static int FAST_PACE = 110;
 
-const static double ELAST_DEFAULT = 1.3;
+const static double ELAST_DEFAULT = 1.5;
 
 /**
  * Score do jogo
@@ -105,18 +108,18 @@ void initCM()
   ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", ballMotion, 0.2, 1);
 
   playersBody[0] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.2, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.7+rand()%30-15, 180+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.6+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.7+rand()%30-15, 520+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
   playersBody[4] = newPlayer(TEAM_A, cpv(350, 250), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
   playersBody[5] = newPlayer(TEAM_A, cpv(350, 450), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
 
   playersBody[6] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.8, 350+rand()%100-50), 20, 5, moveGoalkepper, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[7] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[8] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[9] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[10] = newPlayer(TEAM_B, cpv(600+rand()%100-50, 250+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
-  playersBody[11] = newPlayer(TEAM_B, cpv(600+rand()%100-50, 450+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[7] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.3+rand()%30-15, 180+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[8] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.4+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[9] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.3+rand()%30-15, 520+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[10] = newPlayer(TEAM_B, cpv(650+rand()%100-50, 200+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
+  playersBody[11] = newPlayer(TEAM_B, cpv(650+rand()%100-50, 500+rand()%60-30), 20, 5, moveAttackerToTheBall, 0.2, ELAST_DEFAULT+rand()%1-0.3);
 }
 
 /**
@@ -145,6 +148,22 @@ void freeCM()
 // Função chamada para reiniciar a simulação
 void restartCM()
 {
+    UserData *ud;
+    cpBody *bod;
+    cpVect pos;
+    for (int i = 0; i < 12; ++i) {
+        bod = playersBody[i];
+        ud = cpBodyGetUserData(bod);
+        pos = cpBodyGetPosition(bod);
+        pos.x = ud->defaultPosition.x;
+        pos.y = ud->defaultPosition.y;
+        cpBodySetPosition(bod, pos);
+    }
+
+    pos.x = 512;
+    pos.y = 350;
+    cpBodySetPosition(ballBody, pos);
+
   // Escreva o código para reposicionar os jogadores, ressetar o score, etc.
   score1 = score2 = 0;
   // Não esqueça de ressetar a variável gameIsOver!
@@ -307,18 +326,29 @@ cpBody * newPlayer(playerTeam team, cpVect pos, cpFloat radius, cpFloat mass, bo
  */
 void moveAttackerToTheBall(cpBody *playerBody, void *data)
 {
-  cpVect vel = cpBodyGetVelocity(playerBody);
-  vel = cpvclamp(vel, FAST_PACE + rand()%30);
-  cpBodySetVelocity(playerBody, vel);
+  UserData *userData = data;
+
+  if (! playerIsInMidfield(playerBody) || distanceToTheBall(playerBody) > 500 || distanceToOrigin(playerBody) > 200) {
+      userData->motionFunction = moveAttackerToOrigin;
+  }
 
   cpVect robotPos = cpBodyGetPosition(playerBody);
   cpVect ballPos = cpBodyGetPosition(ballBody);
 
-  UserData *userData = data;
+  cpVect vel = cpBodyGetVelocity(playerBody);
+  int pace = FAST_PACE;
 
-  if (! playerIsInMidfield(playerBody)) {
-      userData->motionFunction = moveAttackerToOrigin;
-  }
+  if (distanceToTheBall(playerBody) > 350) {
+      pace = NORMAL_PACE;
+    }
+
+  if (distanceToTheBall(playerBody) > 450) {
+      pace = SLOW_PACE;
+    }
+
+  vel = cpvclamp(vel, pace + rand()%30);
+  cpBodySetVelocity(playerBody, vel);
+
   // Calcula um vetor do robô à bola (DELTA = B - R)
   cpVect pos = robotPos;
   pos.x = -robotPos.x;
@@ -331,6 +361,17 @@ void moveAttackerToTheBall(cpBody *playerBody, void *data)
   cpBodyApplyImpulseAtWorldPoint(playerBody, delta, robotPos);
 }
 
+int distanceToTheBall(cpBody *body)
+{
+  cpVect robotPos = cpBodyGetPosition(body);
+  cpVect ballPos = cpBodyGetPosition(ballBody);
+
+  int x = abs((int) (ballPos.x - robotPos.x));
+  int y = abs((int) (ballPos.y - robotPos.y));
+
+  return (int) sqrt(pow(x, 2) + pow(y, 2));
+}
+
 /**
  *
  * @param body
@@ -338,19 +379,29 @@ void moveAttackerToTheBall(cpBody *playerBody, void *data)
  */
 void moveDefenderToTheBall(cpBody *body, void *data)
 {
-  cpVect vel = cpBodyGetVelocity(body);
-  vel = cpvclamp(vel, FAST_PACE + rand()%30);
-  cpBodySetVelocity(body, vel);
-
   UserData *userData = data;
 
-  if (! ballIsInDefendingZone(body, ballBody)) {
+  if (! ballIsInDefendingZone(body, ballBody) || distanceToTheBall(body) > 500 || distanceToOrigin(body) > 200) {
       userData->motionFunction = moveDefenderToOrigin;
       return;
   }
 
   cpVect robotPos = cpBodyGetPosition(body);
   cpVect ballPos = cpBodyGetPosition(ballBody);
+
+  cpVect vel = cpBodyGetVelocity(body);
+  int pace = FAST_PACE;
+
+  if (distanceToTheBall(body) > 350) {
+    pace = NORMAL_PACE;
+  }
+
+  if (distanceToTheBall(body) > 450) {
+      pace = SLOW_PACE;
+  }
+
+  vel = cpvclamp(vel, pace + rand()%30);
+  cpBodySetVelocity(body, vel);
 
   cpVect pos = robotPos;
   pos.x = -robotPos.x;
@@ -360,7 +411,6 @@ void moveDefenderToTheBall(cpBody *body, void *data)
 
   cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
 }
-
 /**
  *
  * @param body
@@ -585,4 +635,16 @@ bool playerIsInMidfield(cpBody *playerBody)
   }
 
   return false;
+}
+
+int distanceToOrigin(cpBody *pBody)
+{
+  cpVect robotPos = cpBodyGetPosition(pBody);
+  UserData *userData = cpBodyGetUserData(pBody);
+  cpVect originPos = userData->defaultPosition;
+
+  int x = abs((int) (originPos.x - robotPos.x));
+  int y = abs((int) (originPos.y - robotPos.y));
+
+  return (int) sqrt(pow(x, 2) + pow(y, 2));
 }
