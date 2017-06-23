@@ -65,7 +65,7 @@ GLuint loadImage(char *img)
 void loadImages()
 {
   pitchTex = loadImage("../images/pitch.png");
-  printf("Pitch tex id: %d\n", pitchTex);
+  printf("Pitch texture id: %d\n", pitchTex);
 }
 // Seria usada por debugdraw
 cpSpaceDebugColor ColorForShape(cpShape *shape, cpDataPointer data)
@@ -123,7 +123,7 @@ void drawBody(cpVect pos, cpFloat angle, UserData *ud)
   glPushMatrix();
   glTranslatef(pos.x, pos.y, 0);
   glRotatef(angle * C80PI, 0, 0, 1);
-  glBindTexture(GL_TEXTURE_2D, ud->tex);
+  glBindTexture(GL_TEXTURE_2D, ud->texture);
   glEnable(GL_TEXTURE_2D);
   glColor3f(1, 1, 1);
   glBegin(GL_QUADS);
@@ -147,8 +147,8 @@ void eachBodyFunc(cpBody *body, void *data)
   // Assumindo que todos os corpos são circulares...
   drawBody(pos, angle, ud);
   // Se há uma função de movimento associada ao corpo, chama ela
-  if (ud->func != NULL && !gameIsOver)
-    (*ud->func)(body, ud);
+  if (ud->motionFunction != NULL && !gameIsOver)
+    (*ud->motionFunction)(body, ud);
 }
 // Desenha a imagem do campo
 void drawPitch()

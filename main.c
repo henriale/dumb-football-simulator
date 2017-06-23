@@ -7,16 +7,30 @@
  */
 void moveRobo(cpBody *body, void *data);
 void moveDefenderToTheBall(cpBody *body, void *data);
+void moveDefenderToOrigin(cpBody *body, void *data);
 void waitForBallToApproach(cpBody *body, void *data);
+
+bool ballIsInDefendingZone(cpBody *playerBody, cpBody *ballBody);
+bool playerIsInAttackingZone(cpBody *playerBody);
+bool playerIsInMidfield(cpBody *playerBody);
+bool playerIsInDefendingZone(cpBody *playerBody);
 
 // Prototipos
 void initCM();
 void freeCM();
 void restartCM();
+
+cpBody *newPlayer(playerTeam team, cpVect pos, cpFloat radius, cpFloat mass, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
 cpShape *newLine(cpVect inicio, cpVect fim, cpFloat fric, cpFloat elast);
 cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotionFunc motion, cpFloat fric, cpFloat elast);
-void moveDefenderToOrigin(cpBody *body, void *data)
-;
+
+const static int LEFT_ZONE = 1;
+const static int MID_ZONE = 2;
+const static int RIGHT_ZONE = 3;
+
+typedef unsigned int fieldZone;
+fieldZone bodyZone(cpBody *body);
+
 /**
  * Score do jogo
  */
@@ -50,11 +64,7 @@ cpShape *leftWall, *rightWall, *topWall, *bottomWall;
 cpBody *ballBody;
 cpBody *robotBody;
 
-typedef struct {
-  int from, to;
-} xLimits;
-
-cpBody *playersBody[];
+cpBody *playersBody[12];
 
 /**
  * Clock.
@@ -87,11 +97,14 @@ void initCM()
   // todo: extract
   ballBody = newCircle(cpv(512, 350), 8, 1, "../images/ball.png", NULL, 0.2, 1);
 
-  // team red
-  robotBody = newCircle(cpv(50, 350), 20, 5, "../images/player1.png", moveRobo, 0.2, 0.5);
+  playersBody[1] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
+  playersBody[2] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
+  playersBody[3] = newPlayer(TEAM_A, cpv(ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
+  playersBody[4] = newPlayer(TEAM_A, cpv(350, 350), 20, 5, moveRobo, 0.2, 0.9);
 
-  // team blue
-  playersBody[0] = newCircle(cpv(900, 350), 20, 5, "../images/player2.png", waitForBallToApproach, 0.2, 0.5);
+  playersBody[6] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 150+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
+  playersBody[7] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 350+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
+  playersBody[8] = newPlayer(TEAM_B, cpv(ZONE_SIZE*2+ZONE_SIZE*0.5+rand()%30-15, 550+rand()%30-15), 20, 5, waitForBallToApproach, 0.2, 0.9);
 }
 
 /**
@@ -109,7 +122,7 @@ void moveRobo(cpBody *body, void *data)
   // printf("vel: %f %f", vel.x,vel.y);
 
   // Limita o vetor em 50 unidades
-  vel = cpvclamp(vel, 50);
+  vel = cpvclamp(vel, 90);
   // E seta novamente a velocidade do corpo
   cpBodySetVelocity(body, vel);
 
@@ -139,9 +152,13 @@ void freeCM()
   UserData *ud = cpBodyGetUserData(ballBody);
   cpShapeFree(ud->shape);
   cpBodyFree(ballBody);
-  ud = cpBodyGetUserData(robotBody);
-  cpShapeFree(ud->shape);
-  cpBodyFree(robotBody);
+
+  for (int i = 0; i < 12; ++i) {
+      //TODO: ud = cpBodyGetUserData(playersBody[i]);
+      //TODO: cpShapeFree(ud->shape);
+      //TODO: cpBodyFree(playersBody[i]);
+  }
+
   cpShapeFree(leftWall);
   cpShapeFree(rightWall);
   cpShapeFree(bottomWall);
@@ -237,15 +254,21 @@ cpBody *newCircle(cpVect pos, cpFloat radius, cpFloat mass, char *img, bodyMotio
   cpShapeSetFriction(newShape, fric);
   cpShapeSetElasticity(newShape, elast);
   UserData *newUserData = malloc(sizeof(UserData));
-  newUserData->tex = loadImage(img);
+  newUserData->texture = loadImage(img);
   newUserData->radius = radius;
   newUserData->shape = newShape;
-  newUserData->func = motion;
+  newUserData->motionFunction = motion;
   cpBodySetUserData(newBody, newUserData);
   printf("newCircle: loaded img %s\n", img);
 
   return newBody;
 }
+
+/**
+ *
+ * @param body
+ * @param data
+ */
 void moveDefenderToTheBall(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
@@ -257,9 +280,9 @@ void moveDefenderToTheBall(cpBody *body, void *data)
 
   UserData *userData = data;
 
-  if (robotPos.x < 700) {
+  if (! ballIsInDefendingZone(body, ballBody)) {
       printf("changing defender motion to its position\n");
-      userData->func = moveDefenderToOrigin;
+      userData->motionFunction = moveDefenderToOrigin;
       return;
   }
 
@@ -272,46 +295,178 @@ void moveDefenderToTheBall(cpBody *body, void *data)
   cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
 }
 
+/**
+ *
+ * @param body
+ * @param data
+ */
 void moveDefenderToOrigin(cpBody *body, void *data)
 {
   cpVect vel = cpBodyGetVelocity(body);
   vel = cpvclamp(vel, 90);
   cpBodySetVelocity(body, vel);
-
-  cpVect robotPos = cpBodyGetPosition(body);
-  cpVect ballPos = cpBodyGetPosition(ballBody);
-
   UserData *userData = data;
 
-  // ball inside defender zone
-  if (ballPos.x < 700 && robotPos.x > 700) {
+  if (ballIsInDefendingZone(body, ballBody)) {
       printf("changing defender motion to the ball\n");
-      userData->func = moveDefenderToTheBall;
+      userData->motionFunction = moveDefenderToTheBall;
       return;
   }
-  cpVect pos = robotPos;
-  pos.x = -robotPos.x;
-  pos.y = -robotPos.y;
-  cpVect delta = cpvadd(ballPos, pos);
+
+  cpVect playerPosition = cpBodyGetPosition(body);
+  cpVect pos = playerPosition;
+  pos.x = -playerPosition.x;
+  pos.y = -playerPosition.y;
+  cpVect delta = cpvadd(userData->defaultPosition, pos);
   delta = cpvmult(cpvnormalize(delta), 20);
 
-  cpBodyApplyImpulseAtWorldPoint(body, delta, robotPos);
+  cpBodyApplyImpulseAtWorldPoint(body, delta, playerPosition);
 }
+
+/**
+ *
+ * @param body
+ * @param data
+ */
 void waitForBallToApproach(cpBody *body, void *data)
 {
-  printf("player is waiting for the ball\n");
-
   cpVect vel = cpBodyGetVelocity(body);
   vel = cpvclamp(vel, 0);
   cpBodySetVelocity(body, vel);
-
-  cpVect robotPos = cpBodyGetPosition(body);
-  cpVect ballPos = cpBodyGetPosition(ballBody);
-
   UserData *userData = data;
 
-  // ball inside defender zone
-  if (ballPos.x > 700) {
-      userData->func = moveDefenderToTheBall;
+  if (ballIsInDefendingZone(body, ballBody)) {
+      printf("changing defender motion to the ball\n");
+      userData->motionFunction = moveDefenderToTheBall;
   }
+}
+
+/**
+ *
+ * @param playerBody
+ * @param ballBody
+ *
+ * @return
+ */
+bool ballIsInDefendingZone(cpBody *playerBody, cpBody *ballBody)
+{
+  UserData *userData = cpBodyGetUserData(playerBody);
+  playerTeam team = userData->team;
+
+  fieldZone zone = bodyZone(ballBody);
+
+  if ((team == TEAM_A && zone == LEFT_ZONE) || (team == TEAM_B && zone == RIGHT_ZONE)) {
+      return true;
+  }
+
+  return false;
+}
+
+/**
+ *
+ * @param playerBody
+ *
+ * @return
+ */
+bool playerIsInDefendingZone(cpBody *playerBody)
+{
+  UserData *userData = cpBodyGetUserData(playerBody);
+  playerTeam team = userData->team;
+  fieldZone zone = bodyZone(playerBody);
+
+  if ((team == TEAM_A && zone == LEFT_ZONE) || (team == TEAM_B && zone == RIGHT_ZONE)) {
+      return true;
+  }
+
+  return false;
+}
+
+/**
+ *
+ * @param playerBody
+ *
+ * @return
+ */
+bool playerIsInAttackingZone(cpBody *playerBody)
+{
+  UserData *userData = cpBodyGetUserData(playerBody);
+  playerTeam team = userData->team;
+  fieldZone zone = bodyZone(playerBody);
+
+  if ((team == TEAM_A && zone == RIGHT_ZONE) || (team == TEAM_B && zone == LEFT_ZONE)) {
+      return true;
+  }
+
+  return false;
+}
+
+/**
+ *
+ * @param playerBody
+ *
+ * @return
+ */
+bool playerIsInMidfield(cpBody *playerBody)
+{
+  fieldZone zone = bodyZone(playerBody);
+
+  if (zone == MID_ZONE) {
+      return true;
+  }
+
+  return false;
+}
+
+/**
+ * Create new circle body and set a team to its user data
+ *
+ * @param team
+ * @param pos
+ * @param radius
+ * @param mass
+ * @param img
+ * @param motion
+ * @param fric
+ * @param elast
+ *
+ * @return cpBody
+ */
+cpBody * newPlayer(playerTeam team, cpVect pos, cpFloat radius, cpFloat mass, bodyMotionFunc motion, cpFloat fric, cpFloat elast)
+{
+  char *img;
+  if (team == TEAM_A) {
+    img = "../images/player1.png";
+  } else {
+      img = "../images/player2.png";
+  }
+
+  cpBody *body = newCircle(pos, radius, mass, img, motion, fric, elast);
+
+  UserData *userData = cpBodyGetUserData(body);
+  userData->team = team;
+  userData->defaultPosition = pos;
+
+  return body;
+}
+
+/**
+ *
+ * @param body
+ * @return
+ */
+fieldZone bodyZone(cpBody *body)
+{
+  cpVect position = cpBodyGetPosition(body);
+
+  if (position.x < ZONE_SIZE) {
+      return LEFT_ZONE;
+    }
+
+  if (position.x >= ZONE_SIZE && position.x <= ZONE_SIZE*2) {
+      return MID_ZONE;
+    }
+
+  if (position.x > ZONE_SIZE*2) {
+      return RIGHT_ZONE;
+    }
 }

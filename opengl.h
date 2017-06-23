@@ -12,16 +12,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <chipmunk.h>
+#define TEAM_A 1
+#define TEAM_B 2
 #define LARGURA_JAN 1024
 #define ALTURA_JAN 712
+#define ZONE_SIZE LARGURA_JAN/3
 // Definição dos parâmetros das funções de movimento
 // (tipo do ponteiro de função)
 typedef void (*bodyMotionFunc)(cpBody *body, void *data);
+typedef unsigned int playerTeam;
+
 typedef struct {
-    GLuint tex;
+    GLuint texture;
     cpFloat radius;
     cpShape *shape;
-    bodyMotionFunc func;
+    bodyMotionFunc motionFunction;
+    playerTeam team;
+    cpVect defaultPosition;
 } UserData;
 // Funções da interface gráfica e OpenGL
 void init(int argc, char **argv);
